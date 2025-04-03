@@ -7,45 +7,39 @@ import { useModel } from "umi";
 
 const { Text } = Typography;
 
-const OrderTable = ({ data }: { data: Order[] }) => {
-    const { setOrderItem, setIsEdit, setVisible } = useModel("orderModel");
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [sortedInfo, setSortedInfo] = useState<any>({});
-
-    useEffect(() => {
-        setOrders(data);
-    }, [data]);
+const OrderTable = ({ data }: {
+    data: Order[]
+}) => {
+    const { setOrderItem, setIsEdit, setVisible, setData } = useModel("QuanLyDonHang.Order")
+    const [sortedInfo, setSortedInfo] = useState<any>({})
 
     const handleEdit = (record: Order) => {
-        setOrderItem(record);
-        setIsEdit(true);
-        setVisible(true);
-    };
+        setOrderItem(record)
+        setIsEdit(true)
+        setVisible(true)
+    }
 
     const handleDelete = (record: Order) => {
         if (record.status !== OrderStatus.awaiting_confirmation) {
-            message.error('Chỉ có thể hủy đơn hàng ở trạng thái "Chờ xác nhận"');
-            return;
+            message.error('Không thể hủy đơn hàng này')
+            return
         }
-        // TODO: Thêm logic xóa đơn hàng tại đây
-        message.success("Đơn hàng đã được hủy thành công!");
-    };
 
-    const handleTableChange = (pagination: any, filters: any, sorter: any) => {
-        setSortedInfo(sorter);
-    };
+        const updatedData = data.map((item) => {
+            if (item.order_id === record.order_id) {
+                return { ...item, status: OrderStatus.cancel }
+            }
+            return item
+        })
 
-    const renderCustomer = (customer: Customer) => (
-        <Tooltip title={`SĐT: ${customer.phone_number}`}>
-            <Text>{customer.customer_name}</Text>
-        </Tooltip>
-    );
+        localStorage.setItem("order", JSON.stringify(updatedData))
+        setData(updatedData)
+        message.success("Đã hủy đơn hàng thành công")
+    }
 
-    const renderProducts = (products: Product[]) => (
-        <Tooltip title={products.map((p) => `${p.ten_san_pham} (${formatCurrency(p.gia_tien)})`).join("\n")}>
-            <Text>{products.length} Sản phẩm</Text>
-        </Tooltip>
-    );
+    const handleTableChange = (sorter: any) => {
+        setSortedInfo(sorter)
+    }
 
     const columns = [
         {
@@ -58,13 +52,16 @@ const OrderTable = ({ data }: { data: Order[] }) => {
             title: "Khách hàng",
             dataIndex: "customer",
             key: "customer",
-            render: renderCustomer,
+            render: (text: string) => <Text strong>{text}</Text>,
         },
         {
             title: "Sản phẩm",
             dataIndex: "product",
             key: "product",
-            render: renderProducts,
+            render: (customer: Customer) => (
+                <Tooltip title={`SĐT: ${customer.phone_number}`}>
+                    <Text>{customer.customer_name}</Text>
+                </Tooltip>
         },
         {
             title: "Ngày đặt hàng",
